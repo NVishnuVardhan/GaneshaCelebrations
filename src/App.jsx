@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand } from 'lucide-react';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
+import qrImage from './assets/qr.jpeg';
 import './App.css';
 
 const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sept 19'];
@@ -298,6 +299,13 @@ function App() {
                 <MessageCircle className="feature-icon" size={28} />
                 <h3>More Details</h3>
                 <p>Please <a href="https://chat.whatsapp.com/Hw83ka9nJtF7tgiDpuXSvf" target="_blank" rel="noreferrer" style={{color: 'var(--color-accent)', textDecoration: 'underline'}}>join us on WhatsApp</a> for updates and more details.</p>
+              </div>
+
+              <div className="feature-card">
+                <Hand className="feature-icon" size={28} />
+                <h3>Support the Utsav</h3>
+                <p>Donate using the QR code below.</p>
+                <img src={qrImage} alt="Donation QR Code" style={{ width: '100%', maxWidth: '200px', borderRadius: '8px', marginTop: '1rem', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
               </div>
 
             </div>
