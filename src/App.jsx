@@ -74,6 +74,10 @@ function App() {
         }
         await addDoc(collection(db, 'poojaEnrollments'), { name: formData.name, phone: formData.phone, dates: formData.dates });
       } else if (enrollType === 'prasadam') {
+        if (!formData.item) {
+          alert("Please enter the Prasadam item.");
+          return;
+        }
         if (formData.dates.length === 0) {
           alert("Please select at least one date.");
           return;
@@ -358,13 +362,14 @@ function App() {
               </div>
               {enrollType === 'prasadam' && (
                 <div className="form-group">
-                  <label htmlFor="item">Item (Optional)</label>
+                  <label htmlFor="item">Item</label>
                   <input
                     type="text"
                     id="item"
                     name="item"
                     value={formData.item}
                     onChange={handleInputChange}
+                    required
                     placeholder="Enter prasadam item"
                   />
                 </div>
