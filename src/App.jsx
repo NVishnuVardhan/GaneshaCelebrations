@@ -74,7 +74,11 @@ function App() {
         }
         await addDoc(collection(db, 'poojaEnrollments'), { name: formData.name, phone: formData.phone, dates: formData.dates });
       } else if (enrollType === 'prasadam') {
-        await addDoc(collection(db, 'prasadamEnrollments'), { name: formData.name, phone: formData.phone, item: formData.item });
+        if (formData.dates.length === 0) {
+          alert("Please select at least one date.");
+          return;
+        }
+        await addDoc(collection(db, 'prasadamEnrollments'), { name: formData.name, phone: formData.phone, item: formData.item, dates: formData.dates });
       } else if (enrollType === 'cultural') {
         if (!formData.activity) {
           alert('Please enter an activity.');
@@ -145,8 +149,12 @@ function App() {
     if (newPhone === null) return;
     const newItem = window.prompt("Edit item:", user.item || '');
     if (newItem === null) return;
+    const newDatesStr = window.prompt("Edit dates (comma separated):", (user.dates || []).join(', '));
+    if (newDatesStr === null) return;
     
-    await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem });
+    const newDates = newDatesStr.split(',').map(d => d.trim()).filter(Boolean);
+    
+    await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem, dates: newDates });
   };
 
   const handleDeleteCulturalUser = async (id) => {
@@ -375,7 +383,7 @@ function App() {
                   />
                 </div>
               )}
-              {enrollType === 'pooja' && (
+              {(enrollType === 'pooja' || enrollType === 'prasadam') && (
                 <div className="form-group">
                   <label>Select Dates</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -483,6 +491,9 @@ function App() {
                         <span style={{ color: 'var(--color-text-primary)' }}>{user.name}</span>
                         {user.item && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Item: {user.item}</span>
+                        )}
+                        {user.dates && user.dates.length > 0 && (
+                          <span style={{ color: 'var(--color-accent)', fontSize: '0.8rem' }}>{user.dates.join(', ')}</span>
                         )}
                         {isAdmin && user.phone && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
