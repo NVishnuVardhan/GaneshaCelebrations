@@ -11,11 +11,13 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [enrollType, setEnrollType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', item: '', dates: [] });
+  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', dates: [] });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
+  const [culturalEnrollments, setCulturalEnrollments] = useState([]);
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
+  const [showCulturalEnrolled, setShowCulturalEnrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -32,9 +34,14 @@ function App() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPrasadamEnrollments(data);
     });
+    const unsubscribeCultural = onSnapshot(collection(db, 'culturalEnrollments'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCulturalEnrollments(data);
+    });
     return () => {
       unsubscribePooja();
       unsubscribePrasadam();
+      unsubscribeCultural();
     };
   }, []);
 
@@ -67,10 +74,16 @@ function App() {
         await addDoc(collection(db, 'poojaEnrollments'), { name: formData.name, phone: formData.phone, dates: formData.dates });
       } else if (enrollType === 'prasadam') {
         await addDoc(collection(db, 'prasadamEnrollments'), { name: formData.name, phone: formData.phone, item: formData.item });
+      } else if (enrollType === 'cultural') {
+        if (!formData.activity) {
+          alert('Please enter an activity.');
+          return;
+        }
+        await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: formData.activity });
       }
       alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
       setEnrollType(null);
-      setFormData({ name: '', phone: '', item: '', dates: [] });
+      setFormData({ name: '', phone: '', item: '', activity: '', dates: [] });
     } catch (error) {
       alert('Error saving data: ' + error.message);
     }
@@ -133,6 +146,30 @@ function App() {
     if (newItem === null) return;
     
     await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem });
+  };
+
+  const handleDeleteCulturalUser = async (id) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      await deleteDoc(doc(db, 'culturalEnrollments', id));
+    }
+  };
+
+  const handleClearAllCultural = async () => {
+    if (window.confirm('Are you sure you want to clear ALL cultural enrollments? This cannot be undone.')) {
+      const snap = await getDocs(collection(db, 'culturalEnrollments'));
+      snap.forEach(d => deleteDoc(doc(db, 'culturalEnrollments', d.id)));
+    }
+  };
+
+  const handleEditCulturalUser = async (user) => {
+    const newName = window.prompt("Edit name:", user.name);
+    if (newName === null) return;
+    const newPhone = window.prompt("Edit phone:", user.phone || '');
+    if (newPhone === null) return;
+    const newActivity = window.prompt("Edit activity:", user.activity || '');
+    if (newActivity === null) return;
+    
+    await updateDoc(doc(db, 'culturalEnrollments', user.id), { name: newName, phone: newPhone, activity: newActivity });
   };
 
   const handleInputChange = (e) => {
@@ -212,7 +249,13 @@ function App() {
               <div className="feature-card">
                 <Music className="feature-icon" size={28} />
                 <h3>Cultural Activities</h3>
-                <p><strong>September 18th After Pooja</strong><br/>For more details, please contact Ranjith: +1 (818) 835-7195</p>
+                <p><strong>September 18th After Pooja</strong></p>
+                <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('cultural')}>Enroll</button>
+                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowCulturalEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
+                    View Participants ({culturalEnrollments.length})
+                  </a>
+                </div>
               </div>
 
               <div className="feature-card">
@@ -267,7 +310,7 @@ function App() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                {enrollType === 'pooja' ? 'Daily Pooja Enrollment' : 'Prasadam Enrollment'}
+                {enrollType === 'pooja' ? 'Daily Pooja Enrollment' : enrollType === 'prasadam' ? 'Prasadam Enrollment' : 'Cultural Activities Enrollment'}
               </h3>
               <button className="close-btn" onClick={() => setEnrollType(null)}>
                 <X size={24} />
@@ -307,6 +350,20 @@ function App() {
                     value={formData.item}
                     onChange={handleInputChange}
                     placeholder="Enter prasadam item"
+                  />
+                </div>
+              )}
+              {enrollType === 'cultural' && (
+                <div className="form-group">
+                  <label htmlFor="activity">Activity (e.g., Singing, Dance)</label>
+                  <input
+                    type="text"
+                    id="activity"
+                    name="activity"
+                    value={formData.activity}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Enter activity"
                   />
                 </div>
               )}
@@ -429,6 +486,60 @@ function App() {
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => handleDeletePrasadamUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No users enrolled yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCulturalEnrolled && (
+        <div className="modal-overlay" onClick={() => setShowCulturalEnrolled(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Cultural Participants</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {isAdmin && culturalEnrollments.length > 0 && (
+                  <button onClick={handleClearAllCultural} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.875rem' }}>
+                    Clear All
+                  </button>
+                )}
+                <button className="close-btn" onClick={() => setShowCulturalEnrolled(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            <div className="enrolled-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {culturalEnrollments.length > 0 ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {culturalEnrollments.map(user => (
+                    <li key={user.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontWeight: '600', flexShrink: 0 }}>
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+                        <span style={{ color: 'var(--color-text-primary)' }}>{user.name}</span>
+                        {user.activity && (
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Activity: {user.activity}</span>
+                        )}
+                        {isAdmin && user.phone && (
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditCulturalUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteCulturalUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
                             <Trash2 size={16} />
                           </button>
                         </div>
