@@ -10,32 +10,12 @@ function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [flowers, setFlowers] = useState([]);
   const [enrollType, setEnrollType] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', item: '', dates: [] });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
-
-  const handleImageClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const newFlower = {
-      id: Date.now() + Math.random(),
-      x,
-      y,
-      emoji: ['🪷', '🏵️', '✨', '🌟'][Math.floor(Math.random() * 4)]
-    };
-    
-    setFlowers(prev => [...prev, newFlower]);
-    
-    setTimeout(() => {
-      setFlowers(prev => prev.filter(f => f.id !== newFlower.id));
-    }, 3000);
-  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -212,16 +192,7 @@ function App() {
               </div>
             </div>
             <div className="hero-visual animate-fade-up delay-4">
-              <div className="visual-block" onClick={handleImageClick}>
-                {flowers.map(flower => (
-                  <span
-                    key={flower.id}
-                    className="glowing-flower"
-                    style={{ left: flower.x, top: flower.y }}
-                  >
-                    {flower.emoji}
-                  </span>
-                ))}
+              <div className="visual-block">
               </div>
             </div>
           </div>
