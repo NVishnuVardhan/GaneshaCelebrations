@@ -482,3 +482,25 @@
   width: 100%;
   justify-content: center;
 }
+
+@keyframes neonWhite {
+  0%, 100% { text-shadow: 0 0 2px rgba(255,255,255,0.2), 0 0 5px rgba(255,255,255,0.2), 0 0 10px rgba(255,255,255,0.16), 0 0 20px rgba(255,255,255,0.12); }
+  50% { text-shadow: 0 0 4px rgba(255,255,255,0.2), 0 0 10px rgba(255,255,255,0.2), 0 0 20px rgba(255,255,255,0.18), 0 0 40px rgba(255,255,255,0.14); }
+}
+
+@keyframes neonGold {
+  0%, 100% { text-shadow: 0 0 2px rgba(229,169,60,0.2), 0 0 5px rgba(229,169,60,0.2), 0 0 10px rgba(229,169,60,0.16), 0 0 20px rgba(229,169,60,0.12); }
+  50% { text-shadow: 0 0 4px rgba(229,169,60,0.2), 0 0 10px rgba(229,169,60,0.2), 0 0 20px rgba(229,169,60,0.18), 0 0 40px rgba(229,169,60,0.14); }
+}
+
+.glowing-text {
+  animation: neonWhite 2.5s ease-in-out infinite alternate;
+  color: #fff;
+}
+
+.glowing-text em {
+  animation: neonGold 2.5s ease-in-out infinite alternate;
+  color: #E5A93C;
+  font-style: italic;
+  display: inline-block;
+}

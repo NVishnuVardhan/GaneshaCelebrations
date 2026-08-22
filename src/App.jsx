@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand } from 'lucide-react';
+import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
+import { db } from './firebase';
 import './App.css';
 
 const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sept 19'];
@@ -11,22 +13,8 @@ function App() {
   const [flowers, setFlowers] = useState([]);
   const [enrollType, setEnrollType] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', item: '', dates: [] });
-  const [poojaEnrollments, setPoojaEnrollments] = useState(() => {
-    const saved = localStorage.getItem('poojaEnrollments');
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [prasadamEnrollments, setPrasadamEnrollments] = useState(() => {
-    const saved = localStorage.getItem('prasadamEnrollments');
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [poojaEnrollments, setPoojaEnrollments] = useState([]);
+  const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
 
@@ -56,12 +44,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('poojaEnrollments', JSON.stringify(poojaEnrollments));
-  }, [poojaEnrollments]);
-
-  useEffect(() => {
-    localStorage.setItem('prasadamEnrollments', JSON.stringify(prasadamEnrollments));
-  }, [prasadamEnrollments]);
+    const unsubscribePooja = onSnapshot(collection(db, 'poojaEnrollments'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPoojaEnrollments(data);
+    });
+    const unsubscribePrasadam = onSnapshot(collection(db, 'prasadamEnrollments'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPrasadamEnrollments(data);
+    });
+    return () => {
+      unsubscribePooja();
+      unsubscribePrasadam();
+    };
+  }, []);
 
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -81,35 +76,40 @@ function App() {
     }
   };
 
-  const handleEnrollSubmit = (e) => {
+  const handleEnrollSubmit = async (e) => {
     e.preventDefault();
-    if (enrollType === 'pooja') {
-      if (formData.dates.length === 0) {
-        alert("Please select at least one date.");
-        return;
+    try {
+      if (enrollType === 'pooja') {
+        if (formData.dates.length === 0) {
+          alert("Please select at least one date.");
+          return;
+        }
+        await addDoc(collection(db, 'poojaEnrollments'), { name: formData.name, phone: formData.phone, dates: formData.dates });
+      } else if (enrollType === 'prasadam') {
+        await addDoc(collection(db, 'prasadamEnrollments'), { name: formData.name, phone: formData.phone, item: formData.item });
       }
-      setPoojaEnrollments(prev => [...prev, { id: Date.now(), name: formData.name, phone: formData.phone, dates: formData.dates }]);
-    } else if (enrollType === 'prasadam') {
-      setPrasadamEnrollments(prev => [...prev, { id: Date.now(), name: formData.name, phone: formData.phone, item: formData.item }]);
+      alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
+      setEnrollType(null);
+      setFormData({ name: '', phone: '', item: '', dates: [] });
+    } catch (error) {
+      alert('Error saving data: ' + error.message);
     }
-    alert(`Thank you, ${formData.name}! You have successfully enrolled for ${enrollType === 'pooja' ? 'Daily Pooja' : 'Prasadam'}.`);
-    setEnrollType(null);
-    setFormData({ name: '', phone: '', item: '', dates: [] });
   };
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setPoojaEnrollments(prev => prev.filter(u => u.id !== id));
+      await deleteDoc(doc(db, 'poojaEnrollments', id));
     }
   };
 
-  const handleClearAllPooja = () => {
+  const handleClearAllPooja = async () => {
     if (window.confirm('Are you sure you want to clear ALL pooja enrollments? This cannot be undone.')) {
-      setPoojaEnrollments([]);
+      const snap = await getDocs(collection(db, 'poojaEnrollments'));
+      snap.forEach(d => deleteDoc(doc(db, 'poojaEnrollments', d.id)));
     }
   };
 
-  const handleEditUser = (user) => {
+  const handleEditUser = async (user) => {
     const newName = window.prompt("Edit name:", user.name);
     if (newName === null) return;
     const newPhone = window.prompt("Edit phone:", user.phone || '');
@@ -119,9 +119,7 @@ function App() {
     
     const newDates = newDatesStr.split(',').map(d => d.trim()).filter(Boolean);
     
-    setPoojaEnrollments(prev => prev.map(u => 
-      u.id === user.id ? { ...u, name: newName, phone: newPhone, dates: newDates } : u
-    ));
+    await updateDoc(doc(db, 'poojaEnrollments', user.id), { name: newName, phone: newPhone, dates: newDates });
   };
 
   const handleDateChange = (date) => {
@@ -133,19 +131,20 @@ function App() {
     });
   };
 
-  const handleDeletePrasadamUser = (id) => {
+  const handleDeletePrasadamUser = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setPrasadamEnrollments(prev => prev.filter(u => u.id !== id));
+      await deleteDoc(doc(db, 'prasadamEnrollments', id));
     }
   };
 
-  const handleClearAllPrasadam = () => {
+  const handleClearAllPrasadam = async () => {
     if (window.confirm('Are you sure you want to clear ALL prasadam enrollments? This cannot be undone.')) {
-      setPrasadamEnrollments([]);
+      const snap = await getDocs(collection(db, 'prasadamEnrollments'));
+      snap.forEach(d => deleteDoc(doc(db, 'prasadamEnrollments', d.id)));
     }
   };
 
-  const handleEditPrasadamUser = (user) => {
+  const handleEditPrasadamUser = async (user) => {
     const newName = window.prompt("Edit name:", user.name);
     if (newName === null) return;
     const newPhone = window.prompt("Edit phone:", user.phone || '');
@@ -153,9 +152,7 @@ function App() {
     const newItem = window.prompt("Edit item:", user.item || '');
     if (newItem === null) return;
     
-    setPrasadamEnrollments(prev => prev.map(u => 
-      u.id === user.id ? { ...u, name: newName, phone: newPhone, item: newItem } : u
-    ));
+    await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem });
   };
 
   const handleInputChange = (e) => {
@@ -197,8 +194,10 @@ function App() {
             <div className="hero-content">
               <span className="hero-eyebrow animate-fade-up">Let's come together in devotion, celebration and community!</span>
               <h1 className="hero-title animate-fade-up delay-1">
-                Liberty Ganesh <br />
-                <em>Utsav 2026</em>
+                <span className="glowing-text">
+                  Liberty Ganesh <br />
+                  <em>Utsav 2026</em>
+                </span>
               </h1>
               <p className="hero-desc animate-fade-up delay-2">
                 We cordially invite everyone to join us in celebrating Ganesh Chaturthi for the 5 days rituals.
