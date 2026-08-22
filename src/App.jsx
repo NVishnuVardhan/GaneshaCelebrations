@@ -12,7 +12,7 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [enrollType, setEnrollType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', dates: [] });
+  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [culturalEnrollments, setCulturalEnrollments] = useState([]);
@@ -84,15 +84,20 @@ function App() {
         }
         await addDoc(collection(db, 'prasadamEnrollments'), { name: formData.name, phone: formData.phone, item: formData.item, dates: formData.dates });
       } else if (enrollType === 'cultural') {
-        if (!formData.activity) {
-          alert('Please enter an activity.');
+        const selectedActivities = [...formData.activities];
+        if (formData.otherActivity && formData.otherActivity.trim()) {
+           selectedActivities.push(formData.otherActivity.trim());
+        }
+        if (selectedActivities.length === 0) {
+          alert('Please select or enter at least one activity.');
           return;
         }
-        await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: formData.activity });
+        const activityString = selectedActivities.join(', ');
+        await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: activityString });
       }
       alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
       setEnrollType(null);
-      setFormData({ name: '', phone: '', item: '', activity: '', dates: [] });
+      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
     } catch (error) {
       alert('Error saving data: ' + error.message);
     }
@@ -130,6 +135,15 @@ function App() {
         ? prev.dates.filter(d => d !== date)
         : [...prev.dates, date];
       return { ...prev, dates };
+    });
+  };
+
+  const handleActivityChange = (act) => {
+    setFormData(prev => {
+      const activities = prev.activities.includes(act) 
+        ? prev.activities.filter(a => a !== act)
+        : [...prev.activities, act];
+      return { ...prev, activities };
     });
   };
 
@@ -375,18 +389,35 @@ function App() {
                 </div>
               )}
               {enrollType === 'cultural' && (
-                <div className="form-group">
-                  <label htmlFor="activity">Activity (e.g., Singing, Dance)</label>
-                  <input
-                    type="text"
-                    id="activity"
-                    name="activity"
-                    value={formData.activity}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Enter activity"
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label>Select Activities</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {['Solo Dance', 'Mens Group Dance', 'Womens Group Dance', 'Kids Dance', 'Singing'].map(act => (
+                        <label key={act} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
+                          <input 
+                            type="checkbox"
+                            checked={formData.activities.includes(act)}
+                            onChange={() => handleActivityChange(act)}
+                            style={{ width: 'auto' }}
+                          />
+                          {act}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <label htmlFor="otherActivity">Other Activity (Optional)</label>
+                    <input
+                      type="text"
+                      id="otherActivity"
+                      name="otherActivity"
+                      value={formData.otherActivity}
+                      onChange={handleInputChange}
+                      placeholder="Enter any other activity"
+                    />
+                  </div>
+                </>
               )}
               {(enrollType === 'pooja' || enrollType === 'prasadam') && (
                 <div className="form-group">
