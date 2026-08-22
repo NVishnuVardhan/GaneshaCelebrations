@@ -613,7 +613,11 @@ function App() {
       <footer className="footer-modern" id="contact">
         <div className="footer-content">
           <div className="footer-brand">
-            Liberty Ganesh <span>Committee</span>
+            <div>Liberty Ganesh <span>Committee</span></div>
+            <div style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: '300', marginTop: '1rem', lineHeight: '1.8', maxWidth: '500px' }}>
+              <div style={{ color: 'var(--color-accent)', fontWeight: '500', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.25rem' }}>Members</div>
+              Ravi &bull; Ashwin &bull; Suresh &bull; Vishnu &bull; Sukumar &bull; Subash &bull; Subbu &bull; Mastan &bull; Ravi Adabala
+            </div>
           </div>
           <div className="footer-links">
             <p style={{ maxWidth: '400px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
