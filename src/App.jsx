@@ -614,9 +614,20 @@ function App() {
         <div className="footer-content">
           <div className="footer-brand">
             <div>Liberty Ganesh <span>Committee</span></div>
-            <div style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)', fontWeight: '300', marginTop: '1rem', lineHeight: '1.8', maxWidth: '500px' }}>
-              <div style={{ color: 'var(--color-accent)', fontWeight: '500', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.25rem' }}>Members</div>
-              Ravi &bull; Ashwin &bull; Suresh &bull; Vishnu &bull; Sukumar &bull; Subash &bull; Subbu &bull; Mastan &bull; Ravi Adabala
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem', maxWidth: '500px' }}>
+              {['Ravi', 'Ashwin', 'Suresh', 'Vishnu', 'Sukumar', 'Subash', 'Subbu', 'Mastan', 'Ravi Adabala'].map(name => (
+                <span key={name} style={{
+                  padding: '0.25rem 0.75rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '20px',
+                  fontSize: '0.8rem',
+                  color: 'var(--color-text-secondary)',
+                  letterSpacing: '0.5px'
+                }}>
+                  {name}
+                </span>
+              ))}
             </div>
           </div>
           <div className="footer-links">
