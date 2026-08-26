@@ -26,6 +26,22 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const [scheduleVisible, setScheduleVisible] = useState(false);
+  const scheduleRef = React.useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setScheduleVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+
+    if (scheduleRef.current) observer.observe(scheduleRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const unsubscribePooja = onSnapshot(collection(db, 'poojaEnrollments'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -262,18 +278,18 @@ function App() {
           </div>
         </section>
 
-        <section id="schedule" className="features-section">
+        <section id="schedule" className="features-section" ref={scheduleRef}>
           <div className="features-container">
             <h2 className="section-title">Event Schedule & Details</h2>
             <div className="features-grid">
               
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Calendar className="feature-icon" size={28} />
                 <h3>Idol Placement & First Pooja</h3>
                 <p><strong>September 14, 6:30 PM</strong><br/>Regular Poojas will be performed every day at 7:00 PM.</p>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Music className="feature-icon" size={28} />
                 <h3>Cultural Activities</h3>
                 <p><strong>September 18th After Pooja</strong></p>
@@ -285,13 +301,13 @@ function App() {
                 </div>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Info className="feature-icon" size={28} />
                 <h3>Ganesh Immersion</h3>
                 <p><strong>September 19th</strong><br/>Starting from 2:00 PM onwards.</p>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Phone className="feature-icon" size={28} />
                 <h3>Daily Pooja Enrollment</h3>
                 <p>Register for daily pooja sessions.</p>
@@ -303,7 +319,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Gift className="feature-icon" size={28} />
                 <h3>Sponsor a Prasadam</h3>
                 <p>Register to offer Prasadam.</p>
@@ -315,19 +331,19 @@ function App() {
                 </div>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <MapPin className="feature-icon" size={28} />
                 <h3>Ganesh Mandap Address</h3>
                 <p>2702 Garrison Dr,<br/>Melissa, TX 75454</p>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <MessageCircle className="feature-icon" size={28} />
                 <h3>More Details</h3>
                 <p>Please <a href="https://chat.whatsapp.com/Hw83ka9nJtF7tgiDpuXSvf" target="_blank" rel="noreferrer" style={{color: 'var(--color-accent)', textDecoration: 'underline'}}>join us on WhatsApp</a> for updates and more details.</p>
               </div>
 
-              <div className="feature-card">
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Hand className="feature-icon" size={28} />
                 <h3>Support the Utsav</h3>
                 <p>Donate using the QR code below.</p>
