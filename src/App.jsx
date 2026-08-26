@@ -615,7 +615,7 @@ function App() {
           <div className="footer-brand">
             <div>Liberty Ganesh <span>Committee</span></div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem', maxWidth: '500px' }}>
-              {['Ravi', 'Ashwin', 'Suresh', 'Vishnu', 'Sukumar', 'Subash', 'Subbu', 'Mastan', 'Ravi Adabala'].map(name => (
+              {['Ravi', 'Ashwin', 'Suresh', 'Vishnu', 'Sukumar', 'Subash', 'Subbu', 'Mastan', 'Ravi Adabala', 'Puneeth', 'Ranjith'].map(name => (
                 <span key={name} style={{
                   padding: '0.25rem 0.75rem',
                   background: 'rgba(255, 255, 255, 0.05)',
