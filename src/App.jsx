@@ -3,6 +3,7 @@ import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Inf
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import qrImage from './assets/qr.jpeg';
+import confetti from 'canvas-confetti';
 import './App.css';
 
 const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sept 19'];
@@ -111,7 +112,18 @@ function App() {
         const activityString = selectedActivities.join(', ');
         await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: activityString });
       }
-      alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
+      if (enrollType === 'prasadam') {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#FF4500'],
+          zIndex: 2000
+        });
+      }
+      setTimeout(() => {
+        alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
+      }, enrollType === 'prasadam' ? 800 : 10);
       setEnrollType(null);
       setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
     } catch (error) {
