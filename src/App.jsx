@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand } from 'lucide-react';
-import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand, BarChart2, DollarSign, Plus, Volume2, VolumeX } from 'lucide-react';
+import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import qrImage from './assets/qr.jpeg';
+import ganeshMantraAudio from './assets/GaneshMantra.mpeg';
 import confetti from 'canvas-confetti';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
 import './App.css';
 
 const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sept 19'];
@@ -11,6 +17,9 @@ const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sep
 function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   const [enrollType, setEnrollType] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
@@ -20,6 +29,20 @@ function App() {
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
   const [showCulturalEnrolled, setShowCulturalEnrolled] = useState(false);
+
+  const [showAccounts, setShowAccounts] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [budgetData, setBudgetData] = useState({ totalFunds: 0, expenses: [] });
+
+  useEffect(() => {
+    const isModalOpen = enrollType || showPoojaEnrolled || showPrasadamEnrolled || showCulturalEnrolled || showAccounts;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [enrollType, showPoojaEnrolled, showPrasadamEnrolled, showCulturalEnrolled, showAccounts]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -44,6 +67,32 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const tryAutoplay = async () => {
+      if (audioRef.current) {
+        audioRef.current.volume = 0.20; // Setting volume to 20%
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.log("Autoplay prevented by browser:", err);
+        }
+      }
+    };
+    tryAutoplay();
+  }, []);
+
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  useEffect(() => {
     const unsubscribePooja = onSnapshot(collection(db, 'poojaEnrollments'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPoojaEnrollments(data);
@@ -61,6 +110,32 @@ function App() {
       unsubscribePrasadam();
       unsubscribeCultural();
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchBudget = async () => {
+      try {
+        const budgetRef = doc(db, 'finances', 'budget');
+        const budgetSnap = await getDoc(budgetRef);
+        if (budgetSnap.exists()) {
+          setBudgetData(budgetSnap.data());
+        } else {
+          const initialData = { totalFunds: 0, expenses: [] };
+          await setDoc(budgetRef, initialData);
+          setBudgetData(initialData);
+        }
+      } catch (err) {
+        console.error("Error fetching budget:", err);
+      }
+    };
+    fetchBudget();
+    
+    const unsubscribeBudget = onSnapshot(doc(db, 'finances', 'budget'), (docSnap) => {
+      if (docSnap.exists()) {
+        setBudgetData(docSnap.data());
+      }
+    });
+    return () => unsubscribeBudget();
   }, []);
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -234,6 +309,9 @@ function App() {
 
   return (
     <div className="app-layout">
+      {/* Background Audio */}
+      <audio ref={audioRef} loop src={ganeshMantraAudio} />
+
       <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
         <div className="nav-container">
           <a href="#" className="nav-brand">
@@ -251,6 +329,29 @@ function App() {
           </button>
         </div>
       </nav>
+
+      <button 
+        onClick={toggleAudio} 
+        style={{ 
+          position: 'fixed', 
+          bottom: '20px', 
+          right: '20px', 
+          zIndex: 9999, 
+          background: 'var(--color-accent)', 
+          border: 'none', 
+          borderRadius: '50%', 
+          width: '50px', 
+          height: '50px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          cursor: 'pointer', 
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          color: 'white'
+        }}
+      >
+        {isPlaying ? <Volume2 size={24} /> : <VolumeX size={24} />}
+      </button>
 
       {mobileMenuOpen && (
         <div className="mobile-menu">
@@ -361,6 +462,15 @@ function App() {
                 <p>Donate using the QR code below.</p>
                 <img src={qrImage} alt="Donation QR Code" style={{ width: '100%', maxWidth: '200px', borderRadius: '8px', marginTop: '1rem', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
               </div>
+
+              {isAdmin && (
+                <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
+                  <BarChart2 className="feature-icon" size={28} />
+                  <h3>Accounts</h3>
+                  <p>View budget and expenses</p>
+                  <button className="btn-secondary enroll-btn" onClick={() => setShowAccounts(true)}>View Report</button>
+                </div>
+              )}
 
             </div>
           </div>
@@ -633,6 +743,154 @@ function App() {
               ) : (
                 <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No users enrolled yet.</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAccounts && (
+        <div className="modal-overlay" onClick={() => { setShowAccounts(false); setIsSuperAdmin(false); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Accounts Dashboard</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {!isSuperAdmin && (
+                  <button onClick={() => {
+                    const code = prompt('Enter Super Admin Passcode:');
+                    if (code === 'SuperCelebrate') {
+                      setIsSuperAdmin(true);
+                    } else if (code !== null) {
+                      alert('Incorrect Passcode');
+                    }
+                  }} style={{ background: 'none', border: '1px solid var(--border-light)', borderRadius: '4px', padding: '0.25rem 0.75rem', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '0.875rem' }}>
+                    Super Admin
+                  </button>
+                )}
+                {isSuperAdmin && (
+                  <span style={{ color: 'var(--color-accent)', fontSize: '0.875rem', fontWeight: 'bold' }}>Super Admin Mode</span>
+                )}
+                <button className="close-btn" onClick={() => { setShowAccounts(false); setIsSuperAdmin(false); }}>
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="accounts-dashboard" style={{ padding: '1rem 0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Total Funds</p>
+                  <h2 style={{ margin: 0, color: 'var(--color-text-primary)', fontSize: '2rem', display: 'flex', alignItems: 'center' }}><DollarSign size={24} /> {budgetData.totalFunds}</h2>
+                  {isSuperAdmin && (
+                    <button onClick={async () => {
+                      const newVal = prompt("Enter new Total Funds:", budgetData.totalFunds);
+                      if (newVal !== null && !isNaN(newVal)) {
+                        const numVal = parseFloat(newVal);
+                        await updateDoc(doc(db, 'finances', 'budget'), { totalFunds: numVal });
+                      }
+                    }} style={{ marginTop: '0.5rem', background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}>Edit Total Funds</button>
+                  )}
+                </div>
+                
+                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Total Expenses</p>
+                  <h2 style={{ margin: 0, color: '#ff4d4d', fontSize: '2rem', display: 'flex', alignItems: 'center' }}><DollarSign size={24} /> {(budgetData.expenses || []).reduce((sum, exp) => sum + exp.amount, 0)}</h2>
+                </div>
+                
+                <div style={{ padding: '1.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Remaining Funds</p>
+                  <h2 style={{ margin: 0, color: '#4ade80', fontSize: '2rem', display: 'flex', alignItems: 'center' }}><DollarSign size={24} /> {budgetData.totalFunds - (budgetData.expenses || []).reduce((sum, exp) => sum + exp.amount, 0)}</h2>
+                </div>
+              </div>
+
+              {(() => {
+                const expenseGroups = (budgetData.expenses || []).reduce((acc, exp) => {
+                  acc[exp.description] = (acc[exp.description] || 0) + exp.amount;
+                  return acc;
+                }, {});
+                const pieData = {
+                  labels: Object.keys(expenseGroups),
+                  datasets: [{
+                    data: Object.values(expenseGroups),
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#1982C4', '#F15BB5'],
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)'
+                  }]
+                };
+
+                return (
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 250px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--color-text-primary)', alignSelf: 'flex-start' }}>Expense Breakdown</h4>
+                      {Object.keys(expenseGroups).length > 0 ? (
+                        <div style={{ width: '100%', maxWidth: '200px', aspectRatio: '1/1' }}>
+                          <Pie data={pieData} options={{ maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white', font: { size: 10 } } } } }} />
+                        </div>
+                      ) : (
+                        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', margin: 'auto' }}>No expenses yet.</p>
+                      )}
+                    </div>
+                    
+                    <div style={{ flex: '2 1 400px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Expense Details</h4>
+                        {isSuperAdmin && (
+                          <button onClick={async () => {
+                            const desc = prompt("Enter expense description:");
+                            if (!desc) return;
+                            const amtStr = prompt("Enter expense amount:");
+                            if (amtStr === null || isNaN(amtStr)) return;
+                            const amt = parseFloat(amtStr);
+                            
+                            const newExpense = { id: Date.now().toString(), description: desc, amount: amt, date: new Date().toLocaleDateString() };
+                            const newExpenses = [...(budgetData.expenses || []), newExpense];
+                            await updateDoc(doc(db, 'finances', 'budget'), { expenses: newExpenses });
+                          }} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <Plus size={16} /> Add Expense
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                        {budgetData.expenses && budgetData.expenses.length > 0 ? (
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid var(--border-light)', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                                <th style={{ padding: '0.5rem' }}>Date</th>
+                                <th style={{ padding: '0.5rem' }}>Description</th>
+                                <th style={{ padding: '0.5rem', textAlign: 'right' }}>Amount</th>
+                                {isSuperAdmin && <th style={{ padding: '0.5rem', textAlign: 'center' }}>Actions</th>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {budgetData.expenses.map(exp => (
+                                <tr key={exp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>{exp.date}</td>
+                                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>{exp.description}</td>
+                                  <td style={{ padding: '0.75rem 0.5rem', color: '#ff4d4d', fontSize: '0.9rem', textAlign: 'right' }}>${exp.amount}</td>
+                                  {isSuperAdmin && (
+                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                                      <button onClick={async () => {
+                                        if (window.confirm("Delete this expense?")) {
+                                          const newExpenses = budgetData.expenses.filter(e => e.id !== exp.id);
+                                          await updateDoc(doc(db, 'finances', 'budget'), { expenses: newExpenses });
+                                        }
+                                      }} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer' }}>
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>No expenses recorded.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
