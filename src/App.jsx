@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand, BarChart2, DollarSign, Plus, Volume2, VolumeX } from 'lucide-react';
+import { Menu, X, ArrowRight, Calendar, MapPin, Music, Phone, MessageCircle, Info, Trash2, Edit2, Gift, Hand, BarChart2, DollarSign, Plus, Volume2, VolumeX, Users } from 'lucide-react';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import qrImage from './assets/qr.jpeg';
@@ -22,27 +22,29 @@ function App() {
   const audioRef = useRef(null);
 
   const [enrollType, setEnrollType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
+  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], count: 1 });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [culturalEnrollments, setCulturalEnrollments] = useState([]);
+  const [annadhaanamEnrollments, setAnnadhaanamEnrollments] = useState([]);
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
   const [showCulturalEnrolled, setShowCulturalEnrolled] = useState(false);
+  const [showAnnadhaanamEnrolled, setShowAnnadhaanamEnrolled] = useState(false);
 
   const [showAccounts, setShowAccounts] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [budgetData, setBudgetData] = useState({ totalFunds: 0, expenses: [] });
 
   useEffect(() => {
-    const isModalOpen = enrollType || showPoojaEnrolled || showPrasadamEnrolled || showCulturalEnrolled || showAccounts;
+    const isModalOpen = enrollType || showPoojaEnrolled || showPrasadamEnrolled || showCulturalEnrolled || showAnnadhaanamEnrolled || showAccounts;
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [enrollType, showPoojaEnrolled, showPrasadamEnrolled, showCulturalEnrolled, showAccounts]);
+  }, [enrollType, showPoojaEnrolled, showPrasadamEnrolled, showCulturalEnrolled, showAnnadhaanamEnrolled, showAccounts]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -105,10 +107,15 @@ function App() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCulturalEnrollments(data);
     });
+    const unsubscribeAnnadhaanam = onSnapshot(collection(db, 'annadhaanamEnrollments'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAnnadhaanamEnrollments(data);
+    });
     return () => {
       unsubscribePooja();
       unsubscribePrasadam();
       unsubscribeCultural();
+      unsubscribeAnnadhaanam();
     };
   }, []);
 
@@ -186,8 +193,14 @@ function App() {
         }
         const activityString = selectedActivities.join(', ');
         await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: activityString });
+      } else if (enrollType === 'annadhaanam') {
+        if (!formData.count || formData.count < 1) {
+          alert('Please enter a valid count of people.');
+          return;
+        }
+        await addDoc(collection(db, 'annadhaanamEnrollments'), { name: formData.name, phone: formData.phone, count: Number(formData.count) });
       }
-      if (enrollType === 'prasadam') {
+      if (enrollType === 'prasadam' || enrollType === 'annadhaanam') {
         confetti({
           particleCount: 150,
           spread: 80,
@@ -198,9 +211,9 @@ function App() {
       }
       setTimeout(() => {
         alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
-      }, enrollType === 'prasadam' ? 800 : 10);
+      }, (enrollType === 'prasadam' || enrollType === 'annadhaanam') ? 800 : 10);
       setEnrollType(null);
-      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [] });
+      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], count: 1 });
     } catch (error) {
       alert('Error saving data: ' + error.message);
     }
@@ -300,6 +313,30 @@ function App() {
     if (newActivity === null) return;
     
     await updateDoc(doc(db, 'culturalEnrollments', user.id), { name: newName, phone: newPhone, activity: newActivity });
+  };
+
+  const handleDeleteAnnadhaanamUser = async (id) => {
+    if (window.confirm('Are you sure you want to delete this RSVP?')) {
+      await deleteDoc(doc(db, 'annadhaanamEnrollments', id));
+    }
+  };
+
+  const handleClearAllAnnadhaanam = async () => {
+    if (window.confirm('Are you sure you want to clear ALL Annadhaanam RSVPs? This cannot be undone.')) {
+      const snap = await getDocs(collection(db, 'annadhaanamEnrollments'));
+      snap.forEach(d => deleteDoc(doc(db, 'annadhaanamEnrollments', d.id)));
+    }
+  };
+
+  const handleEditAnnadhaanamUser = async (user) => {
+    const newName = window.prompt("Edit name:", user.name);
+    if (newName === null) return;
+    const newPhone = window.prompt("Edit phone:", user.phone || '');
+    if (newPhone === null) return;
+    const newCountStr = window.prompt("Edit count of people:", user.count || 1);
+    if (newCountStr === null || isNaN(newCountStr)) return;
+    
+    await updateDoc(doc(db, 'annadhaanamEnrollments', user.id), { name: newName, phone: newPhone, count: Number(newCountStr) });
   };
 
   const handleInputChange = (e) => {
@@ -445,6 +482,18 @@ function App() {
               </div>
 
               <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
+                <Users className="feature-icon" size={28} />
+                <h3>Maha Annadhaanam RSVP</h3>
+                <p><strong>September 18th</strong><br/>Let us know how many are attending.</p>
+                <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('annadhaanam')}>RSVP Now</button>
+                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowAnnadhaanamEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
+                    View RSVPs ({annadhaanamEnrollments.reduce((acc, curr) => acc + (curr.count || 1), 0)} people)
+                  </a>
+                </div>
+              </div>
+
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <MapPin className="feature-icon" size={28} />
                 <h3>Ganesh Mandap Address</h3>
                 <p>2702 Garrison Dr,<br/>Melissa, TX 75454</p>
@@ -482,7 +531,7 @@ function App() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                {enrollType === 'pooja' ? 'Daily Pooja Enrollment' : enrollType === 'prasadam' ? 'Prasadam Enrollment' : 'Cultural Activities Enrollment'}
+                {enrollType === 'pooja' ? 'Daily Pooja Enrollment' : enrollType === 'prasadam' ? 'Prasadam Enrollment' : enrollType === 'annadhaanam' ? 'Annadhaanam RSVP' : 'Cultural Activities Enrollment'}
               </h3>
               <button className="close-btn" onClick={() => setEnrollType(null)}>
                 <X size={24} />
@@ -523,6 +572,21 @@ function App() {
                     onChange={handleInputChange}
                     required
                     placeholder="Enter prasadam item"
+                  />
+                </div>
+              )}
+              {enrollType === 'annadhaanam' && (
+                <div className="form-group">
+                  <label htmlFor="count">Number of People Attending</label>
+                  <input
+                    type="number"
+                    id="count"
+                    name="count"
+                    value={formData.count}
+                    onChange={handleInputChange}
+                    min="1"
+                    required
+                    placeholder="E.g. 2"
                   />
                 </div>
               )}
@@ -760,6 +824,61 @@ function App() {
                 </ul>
               ) : (
                 <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No users enrolled yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAnnadhaanamEnrolled && (
+        <div className="modal-overlay" onClick={() => setShowAnnadhaanamEnrolled(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Annadhaanam RSVPs</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {isAdmin && annadhaanamEnrollments.length > 0 && (
+                  <button onClick={handleClearAllAnnadhaanam} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.875rem' }}>
+                    Clear All
+                  </button>
+                )}
+                <button className="close-btn" onClick={() => setShowAnnadhaanamEnrolled(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            <div className="enrolled-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <div style={{ marginBottom: '1rem', color: 'var(--color-text-primary)', fontWeight: 'bold' }}>
+                Total Attending: {annadhaanamEnrollments.reduce((sum, user) => sum + (user.count || 1), 0)}
+              </div>
+              {annadhaanamEnrollments.length > 0 ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {annadhaanamEnrollments.map(user => (
+                    <li key={user.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontWeight: '600', flexShrink: 0 }}>
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+                        <span style={{ color: 'var(--color-text-primary)' }}>{user.name}</span>
+                        <span style={{ color: 'var(--color-accent)', fontSize: '0.85rem' }}>Count: {user.count || 1}</span>
+                        {isAdmin && user.phone && (
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditAnnadhaanamUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteAnnadhaanamUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No RSVPs yet.</p>
               )}
             </div>
           </div>
