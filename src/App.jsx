@@ -12,7 +12,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 import './App.css';
 
-const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18', 'Sept 19'];
+const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18'];
 
 function App() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -561,17 +561,35 @@ function App() {
                 <div className="form-group">
                   <label>Select Dates</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                    {POOJA_DATES.map(date => (
-                      <label key={date} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                        <input 
-                          type="checkbox"
-                          checked={formData.dates.includes(date)}
-                          onChange={() => handleDateChange(date)}
-                          style={{ width: 'auto' }}
-                        />
-                        {date}
-                      </label>
-                    ))}
+                    {POOJA_DATES.map(date => {
+                      let isFull = false;
+                      let countText = '';
+                      
+                      if (enrollType === 'pooja') {
+                        const count = poojaEnrollments.filter(user => user.dates && user.dates.includes(date)).length;
+                        const remaining = 8 - count;
+                        
+                        if (remaining <= 0) {
+                          isFull = true;
+                          countText = '(Full)';
+                        } else {
+                          countText = `(${remaining} left)`;
+                        }
+                      }
+                      
+                      return (
+                        <label key={date} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isFull ? 'not-allowed' : 'pointer', fontSize: '0.9rem', color: isFull ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
+                          <input 
+                            type="checkbox"
+                            checked={formData.dates.includes(date)}
+                            onChange={() => { if (!isFull) handleDateChange(date); }}
+                            disabled={isFull}
+                            style={{ width: 'auto' }}
+                          />
+                          {date} {countText && <span style={{ fontSize: '0.8rem', color: isFull ? '#ff4d4d' : 'var(--color-accent)' }}>{countText}</span>}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               )}
