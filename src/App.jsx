@@ -515,7 +515,7 @@ function App() {
                 <p>Donate using the QR code below.</p>
                 <img src={qrImage} alt="Donation QR Code" style={{ width: '100%', maxWidth: '200px', borderRadius: '8px', margin: '1rem auto', display: 'block' }} />
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>
-                  Scan the above QR using your bank app or Send the payment via Zelle to (702) 701-0443 – Puneeth
+                  Scan the above QR using your bank app or Send the payment via Zelle to <a href="tel:7027010443" style={{color: 'var(--color-accent)', textDecoration: 'underline'}}>(702) 701-0443</a> – Puneeth
                 </p>
               </div>
 
