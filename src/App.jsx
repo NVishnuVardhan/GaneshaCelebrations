@@ -147,7 +147,7 @@ function App() {
       alert('Logged out of Admin mode');
     } else {
       const code = prompt('Enter Admin Passcode:');
-      if (code === 'Celebrate') {
+      if (code === 'access5') {
         setIsAdmin(true);
         alert('Admin Access Granted');
       } else if (code !== null) {
