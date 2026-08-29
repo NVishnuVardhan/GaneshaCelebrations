@@ -442,7 +442,10 @@ function App() {
               <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Music className="feature-icon" size={28} />
                 <h3>Cultural Activities</h3>
-                <p><strong>September 18th After Pooja</strong></p>
+                <p>
+                  <strong>September 18th After Pooja</strong><br/>
+                  <a href="https://chat.whatsapp.com/FJiZ3S2JjvGC93R23C4FU7?s=cl&p=i&mlu=4" target="_blank" rel="noreferrer" style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem', display: 'inline-block', marginTop: '0.25rem'}}>Join Cultural WhatsApp Group</a>
+                </p>
                 <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('cultural')}>Enroll</button>
                 <div style={{marginTop: '1rem', textAlign: 'center'}}>
                   <a href="#" onClick={(e) => { e.preventDefault(); setShowCulturalEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
