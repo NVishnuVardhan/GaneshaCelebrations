@@ -439,20 +439,6 @@ function App() {
                 <p><strong>September 14, 6:30 PM</strong><br/>Regular Poojas will be performed every day at 7:00 PM.</p>
               </div>
 
-              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
-                <Music className="feature-icon" size={28} />
-                <h3>Cultural Activities</h3>
-                <p>
-                  <strong>September 18th After Pooja</strong><br/>
-                  <a href="https://chat.whatsapp.com/FJiZ3S2JjvGC93R23C4FU7?s=cl&p=i&mlu=4" target="_blank" rel="noreferrer" style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem', display: 'inline-block', marginTop: '0.25rem'}}>Join Cultural WhatsApp Group</a>
-                </p>
-                <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('cultural')}>Enroll</button>
-                <div style={{marginTop: '1rem', textAlign: 'center'}}>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setShowCulturalEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
-                    View Participants ({culturalEnrollments.length})
-                  </a>
-                </div>
-              </div>
 
               <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Info className="feature-icon" size={28} />
@@ -492,6 +478,21 @@ function App() {
                 <div style={{marginTop: '1rem', textAlign: 'center'}}>
                   <a href="#" onClick={(e) => { e.preventDefault(); setShowAnnadhaanamEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
                     View RSVPs ({annadhaanamEnrollments.reduce((acc, curr) => acc + (curr.count || 1), 0)} people)
+                  </a>
+                </div>
+              </div>
+
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
+                <Music className="feature-icon" size={28} />
+                <h3>Cultural Activities</h3>
+                <p><strong>September 18th After Pooja</strong></p>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                  <button className="btn-secondary enroll-btn" style={{ flex: 1 }} onClick={() => setEnrollType('cultural')}>Enroll</button>
+                  <a href="https://chat.whatsapp.com/FJiZ3S2JjvGC93R23C4FU7?s=cl&p=i&mlu=4" target="_blank" rel="noreferrer" className="btn-secondary enroll-btn" style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>Join Group</a>
+                </div>
+                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowCulturalEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
+                    View Participants ({culturalEnrollments.length})
                   </a>
                 </div>
               </div>
