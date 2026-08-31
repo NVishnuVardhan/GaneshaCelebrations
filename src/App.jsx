@@ -22,7 +22,7 @@ function App() {
   const audioRef = useRef(null);
 
   const [enrollType, setEnrollType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], count: 1 });
+  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0 });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [culturalEnrollments, setCulturalEnrollments] = useState([]);
@@ -194,11 +194,11 @@ function App() {
         const activityString = selectedActivities.join(', ');
         await addDoc(collection(db, 'culturalEnrollments'), { name: formData.name, phone: formData.phone, activity: activityString });
       } else if (enrollType === 'annadhaanam') {
-        if (!formData.count || formData.count < 1) {
+        if ((!formData.adultsCount && !formData.kidsCount) || (formData.adultsCount < 0) || (formData.kidsCount < 0) || (Number(formData.adultsCount) + Number(formData.kidsCount) < 1)) {
           alert('Please enter a valid count of people.');
           return;
         }
-        await addDoc(collection(db, 'annadhaanamEnrollments'), { name: formData.name, phone: formData.phone, count: Number(formData.count) });
+        await addDoc(collection(db, 'annadhaanamEnrollments'), { name: formData.name, phone: formData.phone, adultsCount: Number(formData.adultsCount), kidsCount: Number(formData.kidsCount) });
       }
       if (enrollType === 'prasadam' || enrollType === 'annadhaanam') {
         confetti({
@@ -213,7 +213,7 @@ function App() {
         alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
       }, (enrollType === 'prasadam' || enrollType === 'annadhaanam') ? 800 : 10);
       setEnrollType(null);
-      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], count: 1 });
+      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0 });
     } catch (error) {
       alert('Error saving data: ' + error.message);
     }
@@ -333,10 +333,12 @@ function App() {
     if (newName === null) return;
     const newPhone = window.prompt("Edit phone:", user.phone || '');
     if (newPhone === null) return;
-    const newCountStr = window.prompt("Edit count of people:", user.count || 1);
-    if (newCountStr === null || isNaN(newCountStr)) return;
+    const newAdultsStr = window.prompt("Edit adults count:", user.adultsCount !== undefined ? user.adultsCount : (user.count || 1));
+    if (newAdultsStr === null || isNaN(newAdultsStr)) return;
+    const newKidsStr = window.prompt("Edit kids count:", user.kidsCount !== undefined ? user.kidsCount : 0);
+    if (newKidsStr === null || isNaN(newKidsStr)) return;
     
-    await updateDoc(doc(db, 'annadhaanamEnrollments', user.id), { name: newName, phone: newPhone, count: Number(newCountStr) });
+    await updateDoc(doc(db, 'annadhaanamEnrollments', user.id), { name: newName, phone: newPhone, adultsCount: Number(newAdultsStr), kidsCount: Number(newKidsStr) });
   };
 
   const handleInputChange = (e) => {
@@ -477,7 +479,7 @@ function App() {
                 <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('annadhaanam')}>RSVP Now</button>
                 <div style={{marginTop: '1rem', textAlign: 'center'}}>
                   <a href="#" onClick={(e) => { e.preventDefault(); setShowAnnadhaanamEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
-                    View RSVPs ({annadhaanamEnrollments.reduce((acc, curr) => acc + (curr.count || 1), 0)} people)
+                    View RSVPs ({annadhaanamEnrollments.reduce((acc, curr) => acc + (curr.adultsCount !== undefined ? curr.adultsCount + (curr.kidsCount || 0) : curr.count || 1), 0)} people)
                   </a>
                 </div>
               </div>
@@ -583,19 +585,34 @@ function App() {
                 </div>
               )}
               {enrollType === 'annadhaanam' && (
-                <div className="form-group">
-                  <label htmlFor="count">Number of People Attending</label>
-                  <input
-                    type="number"
-                    id="count"
-                    name="count"
-                    value={formData.count}
-                    onChange={handleInputChange}
-                    min="1"
-                    required
-                    placeholder="E.g. 2"
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label htmlFor="adultsCount">Number of Adults Attending</label>
+                    <input
+                      type="number"
+                      id="adultsCount"
+                      name="adultsCount"
+                      value={formData.adultsCount}
+                      onChange={handleInputChange}
+                      min="0"
+                      required
+                      placeholder="E.g. 2"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="kidsCount">Number of Kids Attending</label>
+                    <input
+                      type="number"
+                      id="kidsCount"
+                      name="kidsCount"
+                      value={formData.kidsCount}
+                      onChange={handleInputChange}
+                      min="0"
+                      required
+                      placeholder="E.g. 1"
+                    />
+                  </div>
+                </>
               )}
               {enrollType === 'cultural' && (
                 <>
@@ -855,7 +872,7 @@ function App() {
             </div>
             <div className="enrolled-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               <div style={{ marginBottom: '1rem', color: 'var(--color-text-primary)', fontWeight: 'bold' }}>
-                Total Attending: {annadhaanamEnrollments.reduce((sum, user) => sum + (user.count || 1), 0)}
+                Total Attending: {annadhaanamEnrollments.reduce((sum, user) => sum + (user.adultsCount !== undefined ? user.adultsCount + (user.kidsCount || 0) : user.count || 1), 0)} (Adults: {annadhaanamEnrollments.reduce((sum, user) => sum + (user.adultsCount !== undefined ? user.adultsCount : user.count || 1), 0)}, Kids: {annadhaanamEnrollments.reduce((sum, user) => sum + (user.kidsCount || 0), 0)})
               </div>
               {annadhaanamEnrollments.length > 0 ? (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -866,7 +883,9 @@ function App() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
                         <span style={{ color: 'var(--color-text-primary)' }}>{user.name}</span>
-                        <span style={{ color: 'var(--color-accent)', fontSize: '0.85rem' }}>Count: {user.count || 1}</span>
+                        <span style={{ color: 'var(--color-accent)', fontSize: '0.85rem' }}>
+                          Adults: {user.adultsCount !== undefined ? user.adultsCount : user.count || 1}, Kids: {user.kidsCount || 0}
+                        </span>
                         {isAdmin && user.phone && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
                         )}
