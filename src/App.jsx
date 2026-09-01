@@ -22,29 +22,32 @@ function App() {
   const audioRef = useRef(null);
 
   const [enrollType, setEnrollType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0 });
+  const [formData, setFormData] = useState({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0, sponsorType: '', sponsorAmount: '' });
   const [poojaEnrollments, setPoojaEnrollments] = useState([]);
   const [prasadamEnrollments, setPrasadamEnrollments] = useState([]);
   const [culturalEnrollments, setCulturalEnrollments] = useState([]);
   const [annadhaanamEnrollments, setAnnadhaanamEnrollments] = useState([]);
+  const [sponsorshipEnrollments, setSponsorshipEnrollments] = useState([]);
+  
   const [showPoojaEnrolled, setShowPoojaEnrolled] = useState(false);
   const [showPrasadamEnrolled, setShowPrasadamEnrolled] = useState(false);
   const [showCulturalEnrolled, setShowCulturalEnrolled] = useState(false);
   const [showAnnadhaanamEnrolled, setShowAnnadhaanamEnrolled] = useState(false);
+  const [showSponsorshipEnrolled, setShowSponsorshipEnrolled] = useState(false);
 
   const [showAccounts, setShowAccounts] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [budgetData, setBudgetData] = useState({ totalFunds: 0, expenses: [] });
 
   useEffect(() => {
-    const isModalOpen = enrollType || showPoojaEnrolled || showPrasadamEnrolled || showCulturalEnrolled || showAnnadhaanamEnrolled || showAccounts;
+    const isModalOpen = enrollType || showPoojaEnrolled || showPrasadamEnrolled || showCulturalEnrolled || showAnnadhaanamEnrolled || showSponsorshipEnrolled || showAccounts;
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [enrollType, showPoojaEnrolled, showPrasadamEnrolled, showCulturalEnrolled, showAnnadhaanamEnrolled, showAccounts]);
+  }, [enrollType, showPoojaEnrolled, showPrasadamEnrolled, showCulturalEnrolled, showAnnadhaanamEnrolled, showSponsorshipEnrolled, showAccounts]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -111,11 +114,16 @@ function App() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAnnadhaanamEnrollments(data);
     });
+    const unsubscribeSponsorship = onSnapshot(collection(db, 'sponsorshipEnrollments'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSponsorshipEnrollments(data);
+    });
     return () => {
       unsubscribePooja();
       unsubscribePrasadam();
       unsubscribeCultural();
       unsubscribeAnnadhaanam();
+      unsubscribeSponsorship();
     };
   }, []);
 
@@ -199,8 +207,14 @@ function App() {
           return;
         }
         await addDoc(collection(db, 'annadhaanamEnrollments'), { name: formData.name, phone: formData.phone, adultsCount: Number(formData.adultsCount), kidsCount: Number(formData.kidsCount) });
+      } else if (enrollType === 'sponsor') {
+        if (!formData.sponsorType || !formData.sponsorAmount || formData.sponsorAmount <= 0) {
+          alert('Please select a sponsor category and enter a valid amount.');
+          return;
+        }
+        await addDoc(collection(db, 'sponsorshipEnrollments'), { name: formData.name, phone: formData.phone, sponsorType: formData.sponsorType, amount: Number(formData.sponsorAmount) });
       }
-      if (enrollType === 'prasadam' || enrollType === 'annadhaanam') {
+      if (enrollType === 'prasadam' || enrollType === 'annadhaanam' || enrollType === 'sponsor') {
         confetti({
           particleCount: 150,
           spread: 80,
@@ -211,9 +225,9 @@ function App() {
       }
       setTimeout(() => {
         alert(`Thank you, ${formData.name}! You have successfully enrolled.`);
-      }, (enrollType === 'prasadam' || enrollType === 'annadhaanam') ? 800 : 10);
+      }, (enrollType === 'prasadam' || enrollType === 'annadhaanam' || enrollType === 'sponsor') ? 800 : 10);
       setEnrollType(null);
-      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0 });
+      setFormData({ name: '', phone: '', item: '', activity: '', activities: [], otherActivity: '', dates: [], adultsCount: 1, kidsCount: 0, sponsorType: '', sponsorAmount: '' });
     } catch (error) {
       alert('Error saving data: ' + error.message);
     }
@@ -388,6 +402,42 @@ function App() {
     await updateDoc(doc(db, 'annadhaanamEnrollments', user.id), { name: newName, phone: newPhone, adultsCount: Number(newAdultsStr), kidsCount: Number(newKidsStr) });
   };
 
+  const handleDeleteSponsor = async (id) => {
+    if (window.confirm('Are you sure you want to request deletion of this sponsorship?')) {
+      if (isAdmin) {
+        await deleteDoc(doc(db, 'sponsorshipEnrollments', id));
+      } else {
+        await updateDoc(doc(db, 'sponsorshipEnrollments', id), { pendingApproval: { action: 'delete', timestamp: Date.now() } });
+        alert("Your delete request has been sent to the admin for approval.");
+      }
+    }
+  };
+
+  const handleClearAllSponsors = async () => {
+    if (window.confirm('Are you sure you want to clear ALL sponsorships? This cannot be undone.')) {
+      const snap = await getDocs(collection(db, 'sponsorshipEnrollments'));
+      snap.forEach(d => deleteDoc(doc(db, 'sponsorshipEnrollments', d.id)));
+    }
+  };
+
+  const handleEditSponsor = async (user) => {
+    const newName = window.prompt("Edit name:", user.name);
+    if (newName === null) return;
+    const newPhone = window.prompt("Edit phone:", user.phone || '');
+    if (newPhone === null) return;
+    const newType = window.prompt("Edit sponsor category (Idol or Decoration):", user.sponsorType || '');
+    if (newType === null) return;
+    const newAmountStr = window.prompt("Edit amount:", user.amount || '');
+    if (newAmountStr === null || isNaN(newAmountStr)) return;
+    
+    if (isAdmin) {
+      await updateDoc(doc(db, 'sponsorshipEnrollments', user.id), { name: newName, phone: newPhone, sponsorType: newType, amount: Number(newAmountStr) });
+    } else {
+      await updateDoc(doc(db, 'sponsorshipEnrollments', user.id), { pendingApproval: { action: 'edit', timestamp: Date.now(), newData: { name: newName, phone: newPhone, sponsorType: newType, amount: Number(newAmountStr) } } });
+      alert("Your edit request has been sent to the admin for approval.");
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -559,6 +609,18 @@ function App() {
               </div>
 
               <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
+                <DollarSign className="feature-icon" size={28} />
+                <h3>Event Sponsorship</h3>
+                <p>Sponsor the Idol ($1000) or Decoration ($7000). Partial sponsorships are welcome!</p>
+                <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('sponsor')}>Sponsor Now</button>
+                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowSponsorshipEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
+                    View Sponsors ({sponsorshipEnrollments.length})
+                  </a>
+                </div>
+              </div>
+
+              <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <Hand className="feature-icon" size={28} />
                 <h3>Support the Utsav</h3>
                 <p>Donate using the QR code below.</p>
@@ -657,6 +719,38 @@ function App() {
                       min="0"
                       required
                       placeholder="E.g. 1"
+                    />
+                  </div>
+                </>
+              )}
+              {enrollType === 'sponsor' && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="sponsorType">Sponsor Category</label>
+                    <select
+                      id="sponsorType"
+                      name="sponsorType"
+                      value={formData.sponsorType}
+                      onChange={handleInputChange}
+                      required
+                      style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Select a category</option>
+                      <option value="Idol">Idol ($1000 Total Goal)</option>
+                      <option value="Decoration">Decoration ($7000 Total Goal)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="sponsorAmount">Contribution Amount ($)</label>
+                    <input
+                      type="number"
+                      id="sponsorAmount"
+                      name="sponsorAmount"
+                      value={formData.sponsorAmount}
+                      onChange={handleInputChange}
+                      min="1"
+                      required
+                      placeholder="E.g. 500"
                     />
                   </div>
                 </>
@@ -982,6 +1076,72 @@ function App() {
                 </ul>
               ) : (
                 <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No RSVPs yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSponsorshipEnrolled && (
+        <div className="modal-overlay" onClick={() => setShowSponsorshipEnrolled(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Event Sponsors</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {isAdmin && sponsorshipEnrollments.length > 0 && (
+                  <button onClick={handleClearAllSponsors} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.875rem' }}>
+                    Clear All
+                  </button>
+                )}
+                <button className="close-btn" onClick={() => setShowSponsorshipEnrolled(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            <div className="enrolled-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <div style={{ marginBottom: '1rem', color: 'var(--color-text-primary)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Idol: ${sponsorshipEnrollments.filter(s => s.sponsorType === 'Idol').reduce((sum, user) => sum + (user.amount || 0), 0)} / $1000</span>
+                <span>Decoration: ${sponsorshipEnrollments.filter(s => s.sponsorType === 'Decoration').reduce((sum, user) => sum + (user.amount || 0), 0)} / $7000</span>
+              </div>
+              {sponsorshipEnrollments.length > 0 ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {sponsorshipEnrollments.map(user => (
+                    <li key={user.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontWeight: '600', flexShrink: 0 }}>
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+                        <span style={{ color: 'var(--color-text-primary)' }}>{user.name}</span>
+                        <span style={{ color: 'var(--color-accent)', fontSize: '0.85rem' }}>{user.sponsorType}: ${user.amount}</span>
+                        {isAdmin && user.phone && (
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
+                        )}
+                        {user.pendingApproval && (
+                          <span style={{ color: '#ff9800', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            (Pending {user.pendingApproval.action})
+                          </span>
+                        )}
+                      </div>
+                      {isAdmin && user.pendingApproval ? (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleApproveRequest(user, 'sponsorshipEnrollments')} style={{ background: 'var(--color-accent)', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Approve</button>
+                          <button onClick={() => handleRejectRequest(user, 'sponsorshipEnrollments')} style={{ background: '#ff4d4d', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Reject</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditSponsor(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteSponsor(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No sponsors yet.</p>
               )}
             </div>
           </div>
