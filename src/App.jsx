@@ -611,7 +611,7 @@ function App() {
               <div className={`feature-card reveal-on-scroll ${scheduleVisible ? 'is-visible' : ''}`}>
                 <DollarSign className="feature-icon" size={28} />
                 <h3>Event Sponsorship</h3>
-                <p>Sponsor the Idol ($1000) or Decoration ($7000). Partial sponsorships are welcome!</p>
+                <p>Sponsor the Idol ($1000) or Decoration ($700). Partial sponsorships are welcome!</p>
                 <button className="btn-secondary enroll-btn" onClick={() => setEnrollType('sponsor')}>Sponsor Now</button>
                 <div style={{marginTop: '1rem', textAlign: 'center'}}>
                   <a href="#" onClick={(e) => { e.preventDefault(); setShowSponsorshipEnrolled(true); }} style={{color: 'var(--color-accent)', textDecoration: 'underline', fontSize: '0.9rem'}}>
@@ -737,7 +737,7 @@ function App() {
                     >
                       <option value="">Select a category</option>
                       <option value="Idol">Idol ($1000 Total Goal)</option>
-                      <option value="Decoration">Decoration ($7000 Total Goal)</option>
+                      <option value="Decoration">Decoration ($700 Total Goal)</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -1101,7 +1101,7 @@ function App() {
             <div className="enrolled-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               <div style={{ marginBottom: '1rem', color: 'var(--color-text-primary)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
                 <span>Idol: ${sponsorshipEnrollments.filter(s => s.sponsorType === 'Idol').reduce((sum, user) => sum + (user.amount || 0), 0)} / $1000</span>
-                <span>Decoration: ${sponsorshipEnrollments.filter(s => s.sponsorType === 'Decoration').reduce((sum, user) => sum + (user.amount || 0), 0)} / $7000</span>
+                <span>Decoration: ${sponsorshipEnrollments.filter(s => s.sponsorType === 'Decoration').reduce((sum, user) => sum + (user.amount || 0), 0)} / $700</span>
               </div>
               {sponsorshipEnrollments.length > 0 ? (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
