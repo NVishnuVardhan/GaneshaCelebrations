@@ -329,8 +329,13 @@ function App() {
   };
 
   const handleDeleteCulturalUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      await deleteDoc(doc(db, 'culturalEnrollments', id));
+    if (window.confirm('Are you sure you want to request deletion of this enrollment?')) {
+      if (isAdmin) {
+        await deleteDoc(doc(db, 'culturalEnrollments', id));
+      } else {
+        await updateDoc(doc(db, 'culturalEnrollments', id), { pendingApproval: { action: 'delete', timestamp: Date.now() } });
+        alert("Your delete request has been sent to the admin for approval.");
+      }
     }
   };
 
@@ -349,7 +354,12 @@ function App() {
     const newActivity = window.prompt("Edit activity:", user.activity || '');
     if (newActivity === null) return;
     
-    await updateDoc(doc(db, 'culturalEnrollments', user.id), { name: newName, phone: newPhone, activity: newActivity });
+    if (isAdmin) {
+      await updateDoc(doc(db, 'culturalEnrollments', user.id), { name: newName, phone: newPhone, activity: newActivity });
+    } else {
+      await updateDoc(doc(db, 'culturalEnrollments', user.id), { pendingApproval: { action: 'edit', timestamp: Date.now(), newData: { name: newName, phone: newPhone, activity: newActivity } } });
+      alert("Your edit request has been sent to the admin for approval.");
+    }
   };
 
   const handleDeleteAnnadhaanamUser = async (id) => {
@@ -889,13 +899,23 @@ function App() {
                         {isAdmin && user.phone && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
                         )}
+                        {user.pendingApproval && (
+                          <span style={{ color: '#ff9800', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            (Pending {user.pendingApproval.action})
+                          </span>
+                        )}
                       </div>
-                      {isAdmin && (
+                      {isAdmin && user.pendingApproval ? (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => handleEditCulturalUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleApproveRequest(user, 'culturalEnrollments')} style={{ background: 'var(--color-accent)', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Approve</button>
+                          <button onClick={() => handleRejectRequest(user, 'culturalEnrollments')} style={{ background: '#ff4d4d', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Reject</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditCulturalUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteCulturalUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleDeleteCulturalUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Trash2 size={16} />
                           </button>
                         </div>
