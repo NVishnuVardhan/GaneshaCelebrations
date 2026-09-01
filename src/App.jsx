@@ -219,9 +219,31 @@ function App() {
     }
   };
 
+  const handleApproveRequest = async (user, collectionName) => {
+    if (Date.now() - user.pendingApproval.timestamp > 24 * 60 * 60 * 1000) {
+      alert("This request has expired (older than 24 hours).");
+      await updateDoc(doc(db, collectionName, user.id), { pendingApproval: null });
+      return;
+    }
+    if (user.pendingApproval.action === 'delete') {
+      await deleteDoc(doc(db, collectionName, user.id));
+    } else if (user.pendingApproval.action === 'edit') {
+      await updateDoc(doc(db, collectionName, user.id), { ...user.pendingApproval.newData, pendingApproval: null });
+    }
+  };
+
+  const handleRejectRequest = async (user, collectionName) => {
+    await updateDoc(doc(db, collectionName, user.id), { pendingApproval: null });
+  };
+
   const handleDeleteUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      await deleteDoc(doc(db, 'poojaEnrollments', id));
+    if (window.confirm('Are you sure you want to request deletion of this enrollment?')) {
+      if (isAdmin) {
+        await deleteDoc(doc(db, 'poojaEnrollments', id));
+      } else {
+        await updateDoc(doc(db, 'poojaEnrollments', id), { pendingApproval: { action: 'delete', timestamp: Date.now() } });
+        alert("Your delete request has been sent to the admin for approval.");
+      }
     }
   };
 
@@ -242,7 +264,12 @@ function App() {
     
     const newDates = newDatesStr.split(',').map(d => d.trim()).filter(Boolean);
     
-    await updateDoc(doc(db, 'poojaEnrollments', user.id), { name: newName, phone: newPhone, dates: newDates });
+    if (isAdmin) {
+      await updateDoc(doc(db, 'poojaEnrollments', user.id), { name: newName, phone: newPhone, dates: newDates });
+    } else {
+      await updateDoc(doc(db, 'poojaEnrollments', user.id), { pendingApproval: { action: 'edit', timestamp: Date.now(), newData: { name: newName, phone: newPhone, dates: newDates } } });
+      alert("Your edit request has been sent to the admin for approval.");
+    }
   };
 
   const handleDateChange = (date) => {
@@ -264,8 +291,13 @@ function App() {
   };
 
   const handleDeletePrasadamUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      await deleteDoc(doc(db, 'prasadamEnrollments', id));
+    if (window.confirm('Are you sure you want to request deletion of this enrollment?')) {
+      if (isAdmin) {
+        await deleteDoc(doc(db, 'prasadamEnrollments', id));
+      } else {
+        await updateDoc(doc(db, 'prasadamEnrollments', id), { pendingApproval: { action: 'delete', timestamp: Date.now() } });
+        alert("Your delete request has been sent to the admin for approval.");
+      }
     }
   };
 
@@ -288,7 +320,12 @@ function App() {
     
     const newDates = newDatesStr.split(',').map(d => d.trim()).filter(Boolean);
     
-    await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem, dates: newDates });
+    if (isAdmin) {
+      await updateDoc(doc(db, 'prasadamEnrollments', user.id), { name: newName, phone: newPhone, item: newItem, dates: newDates });
+    } else {
+      await updateDoc(doc(db, 'prasadamEnrollments', user.id), { pendingApproval: { action: 'edit', timestamp: Date.now(), newData: { name: newName, phone: newPhone, item: newItem, dates: newDates } } });
+      alert("Your edit request has been sent to the admin for approval.");
+    }
   };
 
   const handleDeleteCulturalUser = async (id) => {
@@ -721,13 +758,23 @@ function App() {
                         {isAdmin && user.phone && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
                         )}
+                        {user.pendingApproval && (
+                          <span style={{ color: '#ff9800', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            (Pending {user.pendingApproval.action})
+                          </span>
+                        )}
                       </div>
-                      {isAdmin && (
+                      {isAdmin && user.pendingApproval ? (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => handleEditUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleApproveRequest(user, 'poojaEnrollments')} style={{ background: 'var(--color-accent)', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Approve</button>
+                          <button onClick={() => handleRejectRequest(user, 'poojaEnrollments')} style={{ background: '#ff4d4d', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Reject</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -778,13 +825,23 @@ function App() {
                         {isAdmin && user.phone && (
                           <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{user.phone}</span>
                         )}
+                        {user.pendingApproval && (
+                          <span style={{ color: '#ff9800', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                            (Pending {user.pendingApproval.action})
+                          </span>
+                        )}
                       </div>
-                      {isAdmin && (
+                      {isAdmin && user.pendingApproval ? (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => handleEditPrasadamUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleApproveRequest(user, 'prasadamEnrollments')} style={{ background: 'var(--color-accent)', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Approve</button>
+                          <button onClick={() => handleRejectRequest(user, 'prasadamEnrollments')} style={{ background: '#ff4d4d', border: 'none', color: 'white', cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>Reject</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => handleEditPrasadamUser(user)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDeletePrasadamUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }}>
+                          <button onClick={() => handleDeletePrasadamUser(user.id)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.25rem' }} disabled={!!user.pendingApproval}>
                             <Trash2 size={16} />
                           </button>
                         </div>
