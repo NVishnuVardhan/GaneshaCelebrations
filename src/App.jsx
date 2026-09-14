@@ -234,11 +234,6 @@ function App() {
   };
 
   const handleApproveRequest = async (user, collectionName) => {
-    if (Date.now() - user.pendingApproval.timestamp > 24 * 60 * 60 * 1000) {
-      alert("This request has expired (older than 24 hours).");
-      await updateDoc(doc(db, collectionName, user.id), { pendingApproval: null });
-      return;
-    }
     if (user.pendingApproval.action === 'delete') {
       await deleteDoc(doc(db, collectionName, user.id));
     } else if (user.pendingApproval.action === 'edit') {
