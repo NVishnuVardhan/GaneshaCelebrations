@@ -12,7 +12,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 import './App.css';
 
-const eventImagesGlob = import.meta.glob('./assets/event-images/*.{png,jpg,jpeg,gif,webp}', { eager: true });
+const eventImagesGlob = import.meta.glob('./assets/event-images/*.{png,jpg,jpeg,gif,webp,PNG,JPG,JPEG,GIF,WEBP}', { eager: true });
 const eventImages = Object.values(eventImagesGlob).map(module => module.default);
 const heroImages = eventImages.length > 0 ? eventImages : [];
 
@@ -158,7 +158,7 @@ function App() {
     return () => unsubscribeBudget();
   }, []);
 
-  const [theme, setTheme] = useState(getInitialTheme);
+
   const [currentHeroImageIndex, setCurrentHeroImageIndex] = useState(0);
 
   useEffect(() => {
