@@ -533,7 +533,7 @@ function App() {
               </div>
             </div>
             <div className="hero-visual animate-fade-up delay-4">
-              <div className="visual-block" style={{ backgroundImage: 'none', display: 'grid', height: 'auto' }}>
+              <div className="visual-block" style={{ backgroundImage: 'none', display: 'grid', height: 'auto', maxHeight: '600px' }}>
                 {heroImages.map((src, index) => (
                   <img 
                     key={src} 
@@ -544,6 +544,7 @@ function App() {
                       gridRow: 1,
                       width: '100%',
                       height: 'auto',
+                      maxHeight: '600px',
                       objectFit: 'contain',
                       opacity: index === currentHeroImageIndex ? 1 : 0,
                       transition: 'opacity 1s ease-in-out',
