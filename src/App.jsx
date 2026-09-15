@@ -12,6 +12,11 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 import './App.css';
 
+const eventImagesGlob = import.meta.glob('./assets/event-images/*.{png,jpg,jpeg,gif,webp}', { eager: true });
+const eventImages = Object.values(eventImagesGlob).map(module => module.default);
+const heroImages = eventImages.length > 0 ? eventImages : [];
+
+
 const POOJA_DATES = ['Sept 14', 'Sept 15', 'Sept 16', 'Sept 17', 'Sept 18'];
 
 function App() {
@@ -151,6 +156,18 @@ function App() {
       }
     });
     return () => unsubscribeBudget();
+  }, []);
+
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [currentHeroImageIndex, setCurrentHeroImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (heroImages.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentHeroImageIndex(prev => (prev + 1) % heroImages.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -516,7 +533,24 @@ function App() {
               </div>
             </div>
             <div className="hero-visual animate-fade-up delay-4">
-              <div className="visual-block">
+              <div className="visual-block" style={{ backgroundImage: 'none', display: 'grid', height: 'auto' }}>
+                {heroImages.map((src, index) => (
+                  <img 
+                    key={src} 
+                    src={src} 
+                    alt={`Event ${index}`} 
+                    style={{
+                      gridColumn: 1,
+                      gridRow: 1,
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      opacity: index === currentHeroImageIndex ? 1 : 0,
+                      transition: 'opacity 1s ease-in-out',
+                      alignSelf: 'center'
+                    }}
+                  />
+                ))}
               </div>
             </div>
           </div>
